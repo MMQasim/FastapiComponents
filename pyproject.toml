@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapicomponents"
-version = "0.1.0"
+version = "0.1.1"
 description = "Modular, reusable FastAPI components for scalable backend development."
 authors = ["Qasim <your-email@example.com>"]
 license = "MIT"
