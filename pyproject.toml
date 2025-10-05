@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapicomponents"
-version = "0.1.1"
+version = "0.1.2"
 description = "Modular, reusable FastAPI components for scalable backend development."
 authors = ["Qasim <your-email@example.com>"]
 license = "MIT"
@@ -9,7 +9,12 @@ packages = [{ include = "fastapicomponents" }]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-pydantic = "^2.9.0"
+pydantic = {extras = ["email"], version = "^2.11.10"}
+fastapi = {extras = ["standard"], version = "^0.118.0"}
+python-jose = {extras = ["cryptography"], version = "^3.5.0"}
+passlib = "^1.7.4"
+pydantic-settings = "^2.11.0"
+sqlalchemy = "^2.0.43"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
