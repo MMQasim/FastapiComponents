@@ -20,8 +20,19 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
         #get user from auth db table
         user:UserAuth = get_auth_user_by_subject(db=db,subject=user_credentials.model_dump()[user_config.USER_IDENTIFIER_FIELD ])#user_provider.get_user()
         
-        if not user or not security.verify_password(user_credentials.password, user.hashed_password):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not user:
+            raise HTTPException(status_code=404,detail={
+                                "code": "USER_NOT_FOUND",
+                                "message": "User not found.",
+                                "details": {"field": user_config.USER_IDENTIFIER_FIELD}
+                            })
+        
+        if not security.verify_password(user_credentials.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail={
+            "code": "INVALID_CREDENTIALS",
+            "message": "The provided password is incorrect.",
+            "details": {"field": "password", "hint": "Double-check your password and try again."}
+        })
         
         access = security.create_access_token(
             user.subject,
@@ -35,7 +46,11 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
         subject=user_data.model_dump()[user_config.USER_IDENTIFIER_FIELD ]
         auth_user=get_auth_user_by_subject(db=db,subject=subject)
         if auth_user:
-            raise HTTPException(status_code=400, detail="User already exists")
+            raise HTTPException(status_code=409, detail={
+        "code": "USER_ALREADY_EXISTS",
+        "message": "A user with this email or phone already exists.",
+        "details": {"field": "email"},
+    })
         
         new_auth_user = create_auth_user(
             db=db,
