@@ -1,10 +1,7 @@
 
 from requests import Session
-from fastapicomponents.user_module.config import get_user_config
-from fastapicomponents.db_module.database import get_db
 from fastapicomponents.auth.services import get_auth_user_by_subject
 from datetime import datetime, timezone, timedelta
-from fastapicomponents.auth.schemas import IdentifierFieldEnum
 import logging
 import pytest
 
