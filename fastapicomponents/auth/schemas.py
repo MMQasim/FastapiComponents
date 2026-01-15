@@ -90,14 +90,12 @@ class CoreUserBase(BaseModel):
 
         return self
 
-class UserLogin(CoreUserBase):
+class UserLogin(CoreUserBase): 
+    # UserLogin login input schema
     pass
 
-
-# Build it dynamically based on config
-#UserLogin = make_user_login_model(user_config.USER_IDENTIFIER_FIELD)
-
-class UserRegister(UserLogin):
+class UserRegister(CoreUserBase): 
+    # UserRegister registration input schema
     roles: List[RoleEnum] = [RoleEnum.user.value]
 
 class BaseRegisteredUser(BaseModel):
@@ -105,5 +103,6 @@ class BaseRegisteredUser(BaseModel):
     identifier: str
     identifier_type: IdentifierFieldEnum
 
-class RegisteredUser(BaseRegisteredUser):
+class RegisteredUser(BaseRegisteredUser): 
+    # user registration output schema
     pass

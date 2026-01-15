@@ -2,7 +2,6 @@
 from requests import Session
 from fastapicomponents.auth.services import get_auth_user_by_subject
 from datetime import datetime, timezone, timedelta
-import logging
 import pytest
 
 
