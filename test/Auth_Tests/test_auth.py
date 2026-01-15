@@ -34,7 +34,6 @@ def refresh_token_test_case(client,refresh_token:str):
     data = response.json()
     assert "access_token" in data
     assert "refresh_token" in data
-
     return data
 
 def invalid_refresh_token_test_case(client,invalid_refresh_token:str):
@@ -56,6 +55,10 @@ if config.USER_IDENTIFIER_FIELD=='email':
         "email": "te@example.com",
         "password": "Secrklj@123",
         "roles": ["user"]
+    },'uppervalid':{
+        "email": "Test@example.com",
+        "password": "Secret@123",
+        "roles": ["user"]
     }}
 elif config.USER_IDENTIFIER_FIELD=='username':
     cradentials = {'valid':{
@@ -65,6 +68,10 @@ elif config.USER_IDENTIFIER_FIELD=='username':
     },'invalid':{
         "username": "testus",
         "password": "Secrklj@123",
+        "roles": ["user"]
+    },'uppervalid':{
+        "username": "Testuser",
+        "password": "Secret@123",
         "roles": ["user"]
     }}
 elif config.USER_IDENTIFIER_FIELD=='phone':
@@ -76,6 +83,10 @@ elif config.USER_IDENTIFIER_FIELD=='phone':
         "phone": "0987654321",
         "password": "Secrklj@123",
         "roles": ["user"]
+    },'uppervalid':{
+        "phone": "0987654321",
+        "password": "Secret@123",
+        "roles": ["user"]
     }}
 else:
     cradentials = {'valid':{
@@ -85,6 +96,10 @@ else:
     },'invalid':{
         "user_id": "uniqueuser12",
         "password": "Secrklj@123",
+        "roles": ["user"]
+    },'uppervalid':{
+        "user_id": "Uniqueuser123",
+        "password": "Secret@123",
         "roles": ["user"]
     }}
 #======================================================================
@@ -99,6 +114,10 @@ def test_register_route(client):
 def test_login_route(client):
     logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
     login_test_case(client,cradentials['valid'])
+
+def test_login_route(client):
+    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
+    login_test_case(client,cradentials['uppervalid'])
 
 def test_invalid_login_route(client):
     logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")

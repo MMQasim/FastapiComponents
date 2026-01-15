@@ -34,7 +34,7 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
             )
 
         #get user from auth db table
-        user:UserAuth | None  = get_auth_user_by_subject(db=db,subject=user_credentials.model_dump()[identifier_field])
+        user:UserAuth | None  = get_auth_user_by_subject(db=db,subject=user_credentials.model_dump()[identifier_field].lower())
         if not user or not security.verify_password(user_credentials.password, user.hashed_password):
             raise HTTPException(status_code=401,
             detail={
@@ -51,9 +51,11 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
 
     @router.post("/register",status_code=201,response_model=RegisteredUser)
     def register(user_data: UserRegister,db=Depends(get_db)):
+        
+
         subject=user_data.model_dump()[user_config.USER_IDENTIFIER_FIELD]
-        print(user_data)
-        auth_user=get_auth_user_by_subject(db=db,subject=subject)
+
+        auth_user=get_auth_user_by_subject(db=db,subject=subject.lower())
         if auth_user:
             raise HTTPException(status_code=409, detail={
         "code": "USER_ALREADY_EXISTS",
