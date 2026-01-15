@@ -1,7 +1,8 @@
 # user_module/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from fastapicomponents.user_module.config import user_config
+from fastapicomponents.user_module.config import get_user_config#user_config
+user_config = get_user_config()
 # -------------------------------------------------------------------
 # 📦 DATABASE CONFIGURATION
 # -------------------------------------------------------------------

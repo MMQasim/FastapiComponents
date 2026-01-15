@@ -1,9 +1,9 @@
 from pydantic import BaseModel, EmailStr,create_model,field_validator
 from typing import List
-from fastapicomponents.user_module.config import user_config
+from fastapicomponents.user_module.config import get_user_config#user_config
 from enum import Enum
 import re
-
+user_config = get_user_config()
 class RoleEnum(str,Enum):
     admin="admin"
     user="user"

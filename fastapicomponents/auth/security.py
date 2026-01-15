@@ -53,12 +53,14 @@ def create_access_token(
     to_encode = {"sub": subject, "roles": roles, "exp": expire}
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def create_refresh_token(subject: str) -> str:
+def create_refresh_token(subject: str,roles: list[str] | None = None,) -> str:
     """
     Create a long-lived refresh token.
     """
+    if roles is None:
+        roles = []
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"sub": subject, "type": "refresh", "exp": expire}
+    to_encode = {"sub": subject, "type": "refresh","roles": roles, "exp": expire}
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 # ---------------------------------------------------------------------------
@@ -87,6 +89,82 @@ def is_refresh_token(token: str) -> bool:
     
 
 
+def renew_access_token(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+    db: Session = Depends(get_db)) :
+
+    """
+    Dependency that:
+    - Extracts JWT token from Authorization header
+    - Decodes and validates it
+    - Fetches the user dynamically based on USER_IDENTIFIER_FIELD
+    - Returns the authenticated user
+    """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "MISSING_TOKEN",
+                "message": "Authorization token is required.",
+            },
+        )
+
+    token = credentials.credentials
+
+    # Step 1: Decode JWT
+    try:
+        payload = decode_token(token)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "TOKEN_INVALID_OR_EXPIRED",
+                "message": "Invalid or expired token.",
+                "details": {
+                    "hint": "Try logging in again to obtain a new token."
+                }
+            }
+        )
+    if not is_refresh_token(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "TOKEN_NOT_REFRESH",
+                "message": "Provided token is not a refresh token.",
+                "details": {
+                    "hint": "Use a valid refresh token to renew access."
+                }  })
+    # Step 2: Extract subject (sub)
+    subject = payload.get("sub")
+    if not subject:
+        raise HTTPException(status_code=401, detail={
+        "code": "TOKEN_INVALID_SUBJECT",
+        "message": "Token missing 'sub' (subject) claim.",
+        "details": {
+            "hint": "Make sure your JWT contains a 'sub' field identifying the user."
+        }
+    })
+
+    roles = payload.get("roles", [])
+
+    
+
+    # Step 4: Query user
+    auth_user = get_auth_user_by_subject(db=db,subject=subject)
+    if not auth_user:
+        raise HTTPException(status_code=404, 
+        detail={
+        "code": "USER_NOT_FOUND",
+        "message": "No user found with this ID."
+        })
+    
+    access = create_access_token(
+            subject=subject,
+            roles=roles
+        )
+    refresh = create_refresh_token(subject=subject,roles=roles)
+    return {"access_token": access, "refresh_token": refresh}
+
+
 def validate_user(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
     db: Session = Depends(get_db),
@@ -98,6 +176,14 @@ def validate_user(
     - Fetches the user dynamically based on USER_IDENTIFIER_FIELD
     - Returns the authenticated user
     """
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "code": "MISSING_TOKEN",
+                "message": "Authorization token is required.",
+            },
+        )
 
     token = credentials.credentials
 

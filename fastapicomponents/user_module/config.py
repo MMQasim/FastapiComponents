@@ -1,3 +1,4 @@
+from functools import lru_cache
 from pydantic_settings import BaseSettings,SettingsConfigDict
 from pydantic import Field
 from typing import List
@@ -18,4 +19,7 @@ class UserConfig(BaseSettings):
         extra="ignore",
     )
 
-user_config:UserConfig = UserConfig()
+@lru_cache
+def get_user_config() -> UserConfig:
+    return UserConfig()
+#user_config:UserConfig = UserConfig()

@@ -1,10 +1,10 @@
 # user_module/service.py
 from .schemas import UserBase
 from fastapi import HTTPException
-from fastapicomponents.user_module.config import user_config
+from fastapicomponents.user_module.config import get_user_config#user_config
 from fastapicomponents.auth.security import hash_password
 from fastapicomponents.user_module.models import User
-
+user_config = get_user_config()
 
 
 def create_user(db,auth_subject:str) -> User:
