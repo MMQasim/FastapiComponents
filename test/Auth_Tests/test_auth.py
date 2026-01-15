@@ -61,112 +61,86 @@ def new_account_verification_test_case(client,db_session: Session,subject:str):
     created_at = ensure_utc(authuser.created_at)
     now = datetime.now(timezone.utc)
     assert now - timedelta(seconds=5) <=  created_at <= now + timedelta(seconds=5)
-#======================================================================
-
-config= get_user_config()
-if config.USER_IDENTIFIER_FIELD=='email':
-    cradentials = {'valid':{
-        "email": "test@example.com",
-        "password": "Secret@123",
-        "roles": ["user"]
-    },'invalid':{
-        "email": "te@example.com",
-        "password": "Secrklj@123",
-        "roles": ["user"]
-    },'uppervalid':{
-        "email": "Test@example.com",
-        "password": "Secret@123",
-        "roles": ["user"]
-    }}
-elif config.USER_IDENTIFIER_FIELD=='username':
-    cradentials = {'valid':{
-        "username": "testuser",
-        "password": "Secret@123",
-        "roles": ["user"]
-    },'invalid':{
-        "username": "testus",
-        "password": "Secrklj@123",
-        "roles": ["user"]
-    },'uppervalid':{
-        "username": "Testuser",
-        "password": "Secret@123",
-        "roles": ["user"]
-    }}
-elif config.USER_IDENTIFIER_FIELD=='phone':
-    cradentials = {'valid':{
-        "phone": "1234567890",
-        "password": "Secret@123",
-        "roles": ["user"]
-    },'invalid':{
-        "phone": "0987654321",
-        "password": "Secrklj@123",
-        "roles": ["user"]
-    },'uppervalid':{
-        "phone": "0987654321",
-        "password": "Secret@123",
-        "roles": ["user"]
-    }}
-else:
-    cradentials = {'valid':{
-        "user_id": "uniqueuser123",
-        "password": "Secret@123",
-        "roles": ["user"]
-    },'invalid':{
-        "user_id": "uniqueuser12",
-        "password": "Secrklj@123",
-        "roles": ["user"]
-    },'uppervalid':{
-        "user_id": "Uniqueuser123",
-        "password": "Secret@123",
-        "roles": ["user"]
-    }}
-#======================================================================
+#====================================================================
 # Test Cases
+
+AUTH_CASES = [
+    ("email", "test@example.com"),
+    ("username", "testuser"),
+    ("phone", "+49123456789"),
+    ("google", "google-sub-123"),
+]
+INVALID_AUTH_CASES = [
+    ("email", "Test@exaple.com"),
+    ("username", "tEStus"),
+    ("phone", "+491256789"),
+    ("google", "google-su-123"),
+]
+PASSWORD="Secret@123"
+
 
 @pytest.mark.parametrize(
     "identifier_type,identifier",
-    [
-        ("email", "test@example.com"),
-        ("username", "testuser"),
-        ("phone", "+49123456789"),
-        ("google", "google-sub-123"),
-    ],
+    AUTH_CASES,
 )
 def test_register_route(client,identifier_type, identifier):
     payload = {
         "identifier": identifier,
         "identifier_type": identifier_type,
-        "password": "Secret@123" if identifier_type != "google" else None,
+        "password": PASSWORD if identifier_type != "google" else None,
     }
     registertion_test_case(client,payload)
 
-"""
-def test_login_route(client):
-    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
-    login_test_case(client,cradentials['valid'])
+@pytest.mark.parametrize(
+    "identifier_type,identifier",
+    AUTH_CASES,
+)
+def test_login_route(client,identifier_type, identifier):
+    payload = {
+        "identifier": identifier,
+        "identifier_type": identifier_type,
+        "password": PASSWORD if identifier_type != "google" else None,
+    }
+    login_test_case(client,payload)
 
-def test_login_route(client):
-    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
-    login_test_case(client,cradentials['uppervalid'])
+@pytest.mark.parametrize(
+    "identifier_type,identifier",
+    INVALID_AUTH_CASES
+)
+def test_invalid_login_route(client,identifier_type, identifier):
+    payload = {
+        "identifier": identifier,
+        "identifier_type": identifier_type,
+        "password": PASSWORD+'lks' if identifier_type != "google" else None,
+    }
+    invalid_login_test_case(client,payload)
 
-def test_invalid_login_route(client):
-    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
-    invalid_login_test_case(client,cradentials['invalid'])
 
-def test_refresh_route(client):
-    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
-    login_data = login_test_case(client,cradentials['valid'])
+@pytest.mark.parametrize(
+    "identifier_type,identifier",
+    AUTH_CASES
+)
+def test_refresh_route(client,identifier_type, identifier):
+    payload = {
+        "identifier": identifier,
+        "identifier_type": identifier_type,
+        "password": PASSWORD if identifier_type != "google" else None,
+    }
+
+    login_data = login_test_case(client,payload)
     refresh_token = login_data['refresh_token']
     refresh_token_test_case(client,refresh_token)
 
-def test_invalid_refresh_route(client):
-    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
-    invalid_refresh_token_test_case(client,"invalidtoken1234567890")
 
-def test_account_verification(client,db_session: Session):
-    logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
-    subject_value = cradentials['valid'][config.USER_IDENTIFIER_FIELD].lower()
-    new_account_verification_test_case(client,db_session,subject_value)
-"""
+@pytest.mark.parametrize(
+    "identifier_type,identifier",
+    AUTH_CASES
+)
+def test_account_verification(client,db_session: Session,identifier_type, identifier):
+    new_account_verification_test_case(client,db_session,identifier)
+
+
+def test_invalid_refresh_route(client):
+    invalid_refresh_token_test_case(client,"invalidtoken1234567890")
 #======================================================================
 

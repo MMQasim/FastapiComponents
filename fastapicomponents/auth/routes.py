@@ -23,7 +23,7 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
     def login(user_credentials: UserLogin,db:Session=Depends(get_db)):
         
         
-        identifier_field = user_config.USER_IDENTIFIER_FIELD
+        '''identifier_field = user_config.USER_IDENTIFIER_FIELD
         
         if not identifier_field:
             raise HTTPException(
@@ -33,17 +33,25 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
                     "message": f"Missing required field: {identifier_field}",
                     "details": {"field": identifier_field},
                 },
-            )
+            )'''
 
         #get user from auth db table
-        user:UserAuth | None  = get_auth_user_by_subject(db=db,subject=user_credentials.model_dump()[identifier_field].lower())
-        if not user or not security.verify_password(user_credentials.password, user.hashed_password):
-            raise HTTPException(status_code=401,
-            detail={
-                "code": "INVALID_CREDENTIALS",
-                "message": "Invalid login credentials.",
-            })
-        
+        user:UserAuth | None  = get_auth_user_by_subject(db=db,subject=user_credentials.identifier.lower())
+        if (user_credentials.identifier_type == IdentifierFieldEnum.email) or (user_credentials.identifier_type == IdentifierFieldEnum.username) or (user_credentials.identifier_type == IdentifierFieldEnum.phone):    
+            if not user or not security.verify_password(user_credentials.password, user.hashed_password):
+                raise HTTPException(status_code=401,
+                detail={
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Invalid login credentials.",
+                })
+        else:
+            if not user:
+                raise HTTPException(status_code=401,
+                detail={
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Invalid login credentials.",
+                })
+
         access = security.create_access_token(
             user.subject,
             getattr(user, "roles", [])
@@ -81,7 +89,6 @@ def get_auth_router(sso_provider: SSOProvider | None = None):
             )
 
         new_user = create_user(db=db,auth_subject=subject,identifier_type=user_data.identifier_type)
-
         output={'roles':new_auth_user.roles,'identifier':subject,'identifier_type': user_data.identifier_type}
         return RegisteredUser(**output)
     
