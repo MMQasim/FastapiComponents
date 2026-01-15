@@ -5,10 +5,6 @@ from typing import List
 
 class UserConfig(BaseSettings):
     """Defines which field uniquely identify a user."""
-    USER_IDENTIFIER_FIELD: str = Field(
-        default= "email",
-        description="Fields used to uniquely identify a user"
-    )
     DATABASE_URL:str = Field(
         default="sqlite:///./app.db",
         description="Database connection URL"
