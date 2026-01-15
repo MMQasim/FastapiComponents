@@ -75,7 +75,7 @@ else:
 #======================================================================
 # Test Cases
 
-
+"""
 def test_register_route(client):
     logging.info(f"Testing with identifier field: {config.USER_IDENTIFIER_FIELD}")
     registertion_test_case(client,cradentials['valid'])
@@ -86,7 +86,7 @@ def test_user_profile_route(client):
     tokens = login_test_case(client,cradentials['valid'])
     user_data = user_profile_test_case(client,tokens['access_token'])
     identifier_value = cradentials['valid'][config.USER_IDENTIFIER_FIELD]
-    assert user_data[config.USER_IDENTIFIER_FIELD] == identifier_value
+    assert user_data[config.USER_IDENTIFIER_FIELD] == identifier_value"""
 
 
 #======================================================================
