@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from fastapicomponents.user_module.models import User
 from fastapicomponents.user_module.schemas import UserBase
 from fastapicomponents.db_module.database import get_db
-from fastapicomponents.auth.security import validate_user ,verified_user
+from fastapicomponents.auth.security import verified_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
