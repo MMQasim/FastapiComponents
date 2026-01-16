@@ -1,5 +1,8 @@
 import pytest
 
+from fastapicomponents.auth.services import get_auth_user_by_subject
+
+
 
 #======================================================================
 # Test Helper Functions
@@ -26,6 +29,13 @@ def user_profile_test_case(client,token:str):
     data = response.json()
     return data
 
+def user_profile_unvarified_test_case(client,token:str):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/users/me", headers=headers)
+    assert response.status_code == 403
+    data = response.json()
+    assert data["detail"]["message"] == "User account is not verified."
+    return data
 #======================================================================
 
 AUTH_CASES = [
@@ -64,8 +74,18 @@ def test_register_route(client,identifier_type, identifier):
     "identifier_type,identifier",
     AUTH_CASES,
 )
-def test_user_profile_route(client,identifier_type, identifier):
+def test_user_profile_route(client,db_session,identifier_type, identifier):
     tokens = login_test_case(client,{'identifier': identifier, 'identifier_type': identifier_type, 'password': PASSWORD if identifier_type != "google" else None})
+    authuser=get_auth_user_by_subject(db=db_session,subject=identifier)
+    if not authuser.is_verified:
+        user_profile_unvarified_test_case(client,tokens['access_token'])
+        
+
+        response = client.put(
+            "/auth/verify-account/{verification_code}".format(verification_code=authuser.verification_code),
+            headers={"Authorization": f"Bearer {login_test_case(client,{'identifier': identifier,'identifier_type': identifier_type,'password': PASSWORD if identifier_type !='google' else None})['access_token']}"}
+        )
+
     user_data = user_profile_test_case(client,tokens['access_token'])
     user_data_keys = user_data.keys()
     if identifier_type in user_data_keys:

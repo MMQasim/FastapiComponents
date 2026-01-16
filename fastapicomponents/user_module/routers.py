@@ -5,13 +5,13 @@ from sqlalchemy.orm import Session
 from fastapicomponents.user_module.models import User
 from fastapicomponents.user_module.schemas import UserBase
 from fastapicomponents.db_module.database import get_db
-from fastapicomponents.auth.security import validate_user 
+from fastapicomponents.auth.security import validate_user ,verified_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.get("/me", response_model=UserBase)
 def get_current_user(
-    current_user = Depends(validate_user),
+    current_user = Depends(verified_user),
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.auth_subject == current_user.subject).first()
