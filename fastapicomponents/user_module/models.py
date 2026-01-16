@@ -5,11 +5,9 @@ from fastapicomponents.db_module.database import Base
 
 class User(Base):
     __tablename__ = "users"
-
-    #id = Column(Integer, primary_key=True, index=True)
+    
     id = Column(String(36),primary_key=True,default=lambda: str(uuid.uuid4()),index=True,nullable=False) # UUID primary key
     auth_subject = Column(String, ForeignKey("auth_users.subject", ondelete="CASCADE"), unique=True, nullable=False)
-
     # 🧩 Flexible identity fields
     username = Column(String, unique=True, index=True, nullable=True)
     email = Column(String, unique=True, index=True, nullable=True)
