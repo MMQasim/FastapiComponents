@@ -14,7 +14,7 @@ class IdentifierFieldEnum(str,Enum):
     email="email"
     username="username"
     phone="phone"
-    user_id="user_id" # generic unique id for SSO or other methods
+    #user_id="user_id" # generic unique id for SSO or other methods
     google="google" # SSO via google
 
 

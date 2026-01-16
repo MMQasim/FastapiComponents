@@ -51,12 +51,23 @@ def ensure_utc(dt):
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
-def new_account_verification_test_case(client,db_session: Session,subject:str):
+def new_account_verification_test_case(client,db_session: Session,subject:str,identifirer_type:str):
     authuser=get_auth_user_by_subject(db=db_session,subject=subject)
-    assert authuser.is_verified == False
+    
     created_at = ensure_utc(authuser.created_at)
     now = datetime.now(timezone.utc)
     assert now - timedelta(seconds=5) <=  created_at <= now + timedelta(seconds=5)
+
+    if identifirer_type in ["email","username","phone"]:
+        assert authuser.hashed_password is not None
+        assert authuser.is_verified == False
+        assert authuser.verification_code is not None
+        assert authuser.verification_code_expires_at is not None
+    else:
+        assert authuser.hashed_password is None
+        assert authuser.is_verified == True
+        assert authuser.verification_code is None
+        assert authuser.verification_code_expires_at is None
 #====================================================================
 # Test Cases
 
@@ -133,9 +144,53 @@ def test_refresh_route(client,identifier_type, identifier):
     AUTH_CASES
 )
 def test_account_verification(client,db_session: Session,identifier_type, identifier):
-    new_account_verification_test_case(client,db_session,identifier)
+    new_account_verification_test_case(client,db_session,identifier,identifier_type)
+
+@pytest.mark.parametrize(
+    "identifier_type,identifier",
+    AUTH_CASES
+)
+def test_account_verification_invalid_code(client,db_session: Session,identifier_type, identifier):
+
+    authuser=get_auth_user_by_subject(db=db_session,subject=identifier)
+    if authuser.is_verified:
+        return  # Skip test if already verified
+    invalid_code = authuser.verification_code + 1 if authuser.verification_code else 123456
+
+    response = client.put(
+        "/auth/verify-account/{verification_code}".format(verification_code=invalid_code),
+        #payload={"verification_code": invalid_code},
+        headers={"Authorization": f"Bearer {login_test_case(client,{'identifier': identifier,'identifier_type': identifier_type,'password': PASSWORD if identifier_type !='google' else None})['access_token']}"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert data["detail"] == "Invalid verification code"
 
 
+@pytest.mark.parametrize(
+    "identifier_type,identifier",
+    AUTH_CASES
+)
+def test_update_account_verification(client,db_session: Session,identifier_type, identifier):
+    
+    authuser=get_auth_user_by_subject(db=db_session,subject=identifier)
+    if authuser.is_verified:
+        return  # Skip test if already verified
+
+    response = client.put(
+        "/auth/verify-account/{verification_code}".format(verification_code=authuser.verification_code),
+        headers={"Authorization": f"Bearer {login_test_case(client,{'identifier': identifier,'identifier_type': identifier_type,'password': PASSWORD if identifier_type !='google' else None})['access_token']}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message"] == "Account verified successfully"
+
+    # Verify in DB
+    updated_authuser=get_auth_user_by_subject(db=db_session,subject=identifier)
+    assert updated_authuser.is_verified == True
+    assert updated_authuser.verification_code is None
+    assert updated_authuser.verification_code_expires_at is None
+    
 def test_invalid_refresh_route(client):
     invalid_refresh_token_test_case(client,"invalidtoken1234567890")
 #======================================================================
