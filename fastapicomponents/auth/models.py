@@ -1,11 +1,17 @@
-from sqlalchemy import Column, Integer, String, JSON
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, JSON, func
 from sqlalchemy.orm import declarative_base
 from fastapicomponents.db_module.database import Base
+import uuid
 
 class UserAuth(Base):
     __tablename__ = "auth_users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36),primary_key=True,default=lambda: str(uuid.uuid4()),index=True,nullable=False) # UUID primary key
+    created_at = Column(DateTime(timezone=True),server_default=func.now(),nullable=False,) # Timestamp when created
+    is_verified = Column(Boolean,default=False,nullable=False) # Email/SSO verified
+    last_login_at = Column(DateTime(timezone=True),nullable=True) # Nullable until first login
+    verification_code = Column(Integer,nullable=True) # NULL once verified or when no active code
+    verification_code_expires_at = Column(DateTime(timezone=True),nullable=True) # NULL once verified or when no active code
 
     # 🧩 Identity fields
     subject = Column(String, unique=True, index=True, nullable=False)

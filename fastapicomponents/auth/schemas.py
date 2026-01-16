@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr,create_model,field_validator
-from typing import List
+from pydantic import BaseModel, EmailStr,create_model,field_validator, model_validator
+from typing import List, Optional
 from fastapicomponents.user_module.config import get_user_config#user_config
 from enum import Enum
 import re
@@ -10,10 +10,20 @@ class RoleEnum(str,Enum):
     guest="guest"
     shopkeeper="owner"
 
+class IdentifierFieldEnum(str,Enum):
+    email="email"
+    username="username"
+    phone="phone"
+    #user_id="user_id" # generic unique id for SSO or other methods
+    google="google" # SSO via google
+
 
 
 class CoreUserBase(BaseModel):
-    password: str
+    #password: str
+    identifier: str
+    identifier_type: IdentifierFieldEnum
+    password: Optional[str] = None
     #roles: List[str] = []
 
     @field_validator("password")
@@ -24,6 +34,9 @@ class CoreUserBase(BaseModel):
         - at least one lowercase, uppercase, digit
         - at least one special character (except ' and ")
         """
+        if v is None:
+            return v 
+        
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long.")
 
@@ -48,88 +61,48 @@ class CoreUserBase(BaseModel):
         return v
 
 
+    @model_validator(mode="after")
+    def validate_auth_rules(self):
+        # EMAIL
+        if self.identifier_type == IdentifierFieldEnum.email:
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", self.identifier):
+                raise ValueError("Invalid email format")
+            if not self.password:
+                raise ValueError("Password required for email registration")
 
-def make_user_login_model(identifier_field: str):
-    """Dynamically create UserLogin model depending on config."""
-    field_map = {
-        "email": {"email": (EmailStr, ...)},
-        "username": {"username": (str, ...)},
-        "phone": {"phone": (str, ...)},
-        "user_id": {"user_id": (str, ...)},
-    }
+        # USERNAME
+        elif self.identifier_type == IdentifierFieldEnum.username:
+            if len(self.identifier) < 3:
+                raise ValueError("Username too short")
+            if not self.password:
+                raise ValueError("Password required for username registration")
 
-    extra_fields = field_map.get(identifier_field, {"user_id": (str, ...)})
+        # PHONE
+        elif self.identifier_type == IdentifierFieldEnum.phone:
+            if not re.match(r"^\+?[1-9]\d{7,15}$", self.identifier):
+                raise ValueError("Invalid phone number format")
+            # password optional (OTP flow)
 
-    model= create_model(
-        "UserLogin",
-        **extra_fields,
-        __base__=CoreUserBase
-    )
+        # GOOGLE SSO
+        elif self.identifier_type == IdentifierFieldEnum.google:
+            if self.password:
+                raise ValueError("Password not allowed for Google SSO")
 
-    if identifier_field == "phone":
-        @field_validator("phone")
-        def validate_phone(cls, v):
-            if not re.match(r"^\+?[1-9]\d{7,15}$", v):
-                raise ValueError("Invalid phone number format.")
-            return v
-        model.validate_phone = validate_phone
+        return self
 
-    elif identifier_field == "username":
-        @field_validator("username")
-        def validate_username(cls, v):
-            if len(v) < 3:
-                raise ValueError("Username too short.")
-            return v
-        model.validate_username = validate_username
+class UserLogin(CoreUserBase): 
+    # UserLogin login input schema
+    pass
 
-    # Ensure the model rebuilds internal schema
-    model.model_rebuild()
-    return model
-
-# Build it dynamically based on config
-UserLogin = make_user_login_model(user_config.USER_IDENTIFIER_FIELD)
-
-class UserRegister(UserLogin):
+class UserRegister(CoreUserBase): 
+    # UserRegister registration input schema
     roles: List[RoleEnum] = [RoleEnum.user.value]
 
 class BaseRegisteredUser(BaseModel):
     roles: List[RoleEnum] = [RoleEnum.user.value]
+    identifier: str
+    identifier_type: IdentifierFieldEnum
 
-def make_user_registered_user(identifier_field: str):
-    """Dynamically create RegisteredUser model depending on config."""
-    field_map = {
-        "email": {"email": (EmailStr, ...)},
-        "username": {"username": (str, ...)},
-        "phone": {"phone": (str, ...)},
-        "user_id": {"user_id": (str, ...)},
-    }
-
-    extra_fields = field_map.get(identifier_field, {"user_id": (str, ...)})
-
-    model = create_model(
-        "RegisteredUser",
-        **extra_fields,
-        __base__=BaseRegisteredUser
-    )
-
-    if identifier_field == "phone":
-        @field_validator("phone")
-        def validate_phone(cls, v):
-            if not re.match(r"^\+?[1-9]\d{7,15}$", v):
-                raise ValueError("Invalid phone number format.")
-            return v
-        model.validate_phone = validate_phone
-
-    elif identifier_field == "username":
-        @field_validator("username")
-        def validate_username(cls, v):
-            if len(v) < 3:
-                raise ValueError("Username too short.")
-            return v
-        model.validate_username = validate_username
-
-    # Ensure the model rebuilds internal schema
-    model.model_rebuild()
-    return model
-
-RegisteredUser= make_user_registered_user(user_config.USER_IDENTIFIER_FIELD)
+class RegisteredUser(BaseRegisteredUser): 
+    # user registration output schema
+    pass

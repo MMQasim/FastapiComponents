@@ -225,3 +225,22 @@ def validate_user(
         })
     
     return auth_user
+
+def verified_user(
+    current_user = Depends(validate_user),
+):
+    """
+    Dependency that ensures the user is verified.
+    """
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "USER_NOT_VERIFIED",
+                "message": "User account is not verified.",
+                "details": {
+                    "hint": "Please verify your account to access this resource."
+                }
+            },
+        )
+    return current_user
